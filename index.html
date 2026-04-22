@@ -1374,58 +1374,59 @@ const CATS = {
 };
 
 // =============================================
-// AUDIO ENGINE — iOS/Safari compatible
+// AUDIO ENGINE — fully synchronous for iOS Safari
 // =============================================
 let audioCtx = null;
 
-async function getCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') {
-    try { await audioCtx.resume(); } catch(e) {}
-  }
-  return audioCtx;
-}
+// All audio calls are synchronous — no async/await anywhere
+// iOS Safari requires AudioContext to be created AND used in the same
+// synchronous call stack as the user gesture.
 
-// MUST be called synchronously inside click/touchend — iOS requirement
 function unlockAndStart() {
-  // Step 1: create context synchronously inside the user gesture
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  // Step 2: play a silent buffer immediately (unlocks iOS audio)
   try {
-    const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-    src.connect(audioCtx.destination);
-    src.start(0);
-  } catch(e) {}
-  // Step 3: resume if suspended
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+    // Play an actual short tone (not silent) — iOS sometimes ignores silent buffers
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = 440;
+    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime); // nearly silent
+    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.1);
+  } catch(e) { console.warn('Audio unlock error:', e); }
   document.getElementById('audio-overlay').style.display = 'none';
 }
 
-async function playClick(t, accent) {
-  const ctx = await getCtx();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.frequency.value = accent ? 1600 : 1000;
-  gain.gain.setValueAtTime(accent ? 0.5 : 0.3, t);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
-  osc.start(t); osc.stop(t + 0.03);
+function playClick(t, accent) {
+  if (!audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.frequency.value = accent ? 1600 : 1000;
+    gain.gain.setValueAtTime(accent ? 0.5 : 0.3, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+    osc.start(t); osc.stop(t + 0.05);
+  } catch(e) {}
 }
 
-async function playStick(t, isRight, isGrace, isAccent) {
-  const ctx = await getCtx();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'triangle';
-  osc.connect(gain); gain.connect(ctx.destination);
-  const baseFreq = isRight ? 320 : 280;
-  osc.frequency.value = baseFreq + (isAccent ? 80 : 0);
-  const vol = isGrace ? 0.12 : isAccent ? 0.55 : 0.35;
-  gain.gain.setValueAtTime(vol, t);
-  gain.gain.exponentialRampToValueAtTime(0.001, t + (isAccent ? 0.08 : 0.05));
-  osc.start(t); osc.stop(t + 0.1);
+function playStick(t, isRight, isGrace, isAccent) {
+  if (!audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    const baseFreq = isRight ? 320 : 280;
+    osc.frequency.value = baseFreq + (isAccent ? 80 : 0);
+    const vol = isGrace ? 0.12 : isAccent ? 0.55 : 0.35;
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + (isAccent ? 0.08 : 0.05));
+    osc.start(t); osc.stop(t + 0.1);
+  } catch(e) {}
 }
 
 // =============================================
@@ -1694,10 +1695,14 @@ function buildNonGraceIndices(pattern) {
   pattern.forEach((n, i) => { if (!n.grace) nonGraceIndices.push(i); });
 }
 
-async function playStep() {
+function playStep() {
   const r = currentRudiment;
-  if (!r) return;
-  const ctx = await getCtx();
+  if (!r || !audioCtx) return;
+
+  // Resume if iOS suspended it (e.g. after backgrounding)
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  const t = audioCtx.currentTime;
 
   // Advance beat visual
   const totalBeats = 4;
@@ -1708,23 +1713,23 @@ async function playStep() {
   });
 
   // Play metronome click
-  await playClick(ctx.currentTime, beatPipIdx === 0);
+  playClick(t, beatPipIdx === 0);
 
   // Play all pattern notes for this step (loop through full pattern continuously)
   const noteIdx = nonGraceIndices[stepIdx % nonGraceIndices.length];
   const note = r.pattern[noteIdx];
   const hand = note.h.toUpperCase();
-  await playStick(ctx.currentTime, hand === 'R', false, !!note.accent);
+  playStick(t, hand === 'R', false, !!note.accent);
 
   // Also check for grace notes just before this note
   if (noteIdx > 0) {
     const prev = r.pattern[noteIdx - 1];
     if (prev && prev.grace) {
-      await playStick(ctx.currentTime - 0.04, prev.h.toUpperCase() === 'R', true, false);
+      playStick(t - 0.04, prev.h.toUpperCase() === 'R', true, false);
     }
   }
 
-  // Update visual playhead — find which non-grace note this is
+  // Update visual playhead
   renderNotation(r, stepIdx % nonGraceIndices.length);
 
   stepIdx++;
@@ -1755,6 +1760,8 @@ function stopPlay() {
 
 function togglePlay() {
   if (!currentRudiment) return;
+  // iOS: always try to resume context on user gesture
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   if (isPlaying) stopPlay(); else startPlay();
 }
 
