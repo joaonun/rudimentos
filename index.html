@@ -822,9 +822,6 @@ input[type=range]::-webkit-slider-thumb {
 </head>
 <body>
 
-<!-- AUDIO UNLOCK -->
-<div id="audio-overlay">
-  <div class="overlay-logo">Rudimentos</div>
   <div class="overlay-sub">Treinador de Baquetas · 40 Rudimentos PAS</div>
   <button class="overlay-btn" onclick="unlockAndStart()" ontouchend="unlockAndStart()">▶ Começar</button>
 </div>
@@ -1374,58 +1371,47 @@ const CATS = {
 };
 
 // =============================================
-// AUDIO ENGINE — fully synchronous for iOS Safari
+// AUDIO ENGINE — iOS Safari: no overlay, unlock on Play button tap
 // =============================================
 let audioCtx = null;
 
-// All audio calls are synchronous — no async/await anywhere
-// iOS Safari requires AudioContext to be created AND used in the same
-// synchronous call stack as the user gesture.
-
-function unlockAndStart() {
-  try {
+function ensureAudio() {
+  // Create context if needed — must be called inside a user gesture
+  if (!audioCtx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     audioCtx = new AC();
-    // Play an actual short tone (not silent) — iOS sometimes ignores silent buffers
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.value = 440;
-    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime); // nearly silent
-    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
-    osc.start(audioCtx.currentTime);
-    osc.stop(audioCtx.currentTime + 0.1);
-  } catch(e) { console.warn('Audio unlock error:', e); }
-  document.getElementById('audio-overlay').style.display = 'none';
+  }
+  // Always try to resume — iOS suspends after inactivity
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
 }
 
 function playClick(t, accent) {
-  if (!audioCtx) return;
+  if (!audioCtx || audioCtx.state !== 'running') return;
   try {
     const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
+    const g = audioCtx.createGain();
+    osc.connect(g); g.connect(audioCtx.destination);
     osc.frequency.value = accent ? 1600 : 1000;
-    gain.gain.setValueAtTime(accent ? 0.5 : 0.3, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
-    osc.start(t); osc.stop(t + 0.05);
+    g.gain.setValueAtTime(accent ? 0.5 : 0.3, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    osc.start(t); osc.stop(t + 0.06);
   } catch(e) {}
 }
 
 function playStick(t, isRight, isGrace, isAccent) {
-  if (!audioCtx) return;
+  if (!audioCtx || audioCtx.state !== 'running') return;
   try {
     const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
+    const g = audioCtx.createGain();
     osc.type = 'triangle';
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    const baseFreq = isRight ? 320 : 280;
-    osc.frequency.value = baseFreq + (isAccent ? 80 : 0);
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.frequency.value = (isRight ? 320 : 280) + (isAccent ? 80 : 0);
     const vol = isGrace ? 0.12 : isAccent ? 0.55 : 0.35;
-    gain.gain.setValueAtTime(vol, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + (isAccent ? 0.08 : 0.05));
-    osc.start(t); osc.stop(t + 0.1);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + (isAccent ? 0.09 : 0.06));
+    osc.start(t); osc.stop(t + 0.12);
   } catch(e) {}
 }
 
@@ -1699,8 +1685,8 @@ function playStep() {
   const r = currentRudiment;
   if (!r || !audioCtx) return;
 
-  // Resume if iOS suspended it (e.g. after backgrounding)
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  // Resume if iOS suspended between ticks
+  if (audioCtx.state === 'suspended') { audioCtx.resume(); return; }
 
   const t = audioCtx.currentTime;
 
@@ -1760,8 +1746,8 @@ function stopPlay() {
 
 function togglePlay() {
   if (!currentRudiment) return;
-  // iOS: always try to resume context on user gesture
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  // Create/resume AudioContext synchronously inside this user gesture — iOS requirement
+  ensureAudio();
   if (isPlaying) stopPlay(); else startPlay();
 }
 
