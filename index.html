@@ -826,7 +826,7 @@ input[type=range]::-webkit-slider-thumb {
 <div id="audio-overlay">
   <div class="overlay-logo">Rudimentos</div>
   <div class="overlay-sub">Treinador de Baquetas · 40 Rudimentos PAS</div>
-  <button class="overlay-btn" onclick="unlockAndStart()">▶ Começar</button>
+  <button class="overlay-btn" onclick="unlockAndStart()" ontouchend="unlockAndStart()">▶ Começar</button>
 </div>
 
 <div class="layout">
@@ -1374,21 +1374,32 @@ const CATS = {
 };
 
 // =============================================
-// AUDIO ENGINE
+// AUDIO ENGINE — iOS/Safari compatible
 // =============================================
 let audioCtx = null;
 
 async function getCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  if (audioCtx.state === 'suspended') {
+    try { await audioCtx.resume(); } catch(e) {}
+  }
   return audioCtx;
 }
 
-async function unlockAndStart() {
-  const ctx = await getCtx();
-  const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
-  const src = ctx.createBufferSource();
-  src.buffer = buf; src.connect(ctx.destination); src.start(0);
+// MUST be called synchronously inside click/touchend — iOS requirement
+function unlockAndStart() {
+  // Step 1: create context synchronously inside the user gesture
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // Step 2: play a silent buffer immediately (unlocks iOS audio)
+  try {
+    const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    src.start(0);
+  } catch(e) {}
+  // Step 3: resume if suspended
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   document.getElementById('audio-overlay').style.display = 'none';
 }
 
@@ -1799,6 +1810,16 @@ document.addEventListener('keydown', e => {
 buildSidebar();
 buildWelcome();
 setBPM(80);
+
+// iOS: re-unlock on any touch after overlay
+document.addEventListener('touchstart', function() {
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}, { passive: true });
+
+// iOS: re-unlock when app returns from background
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+});
 </script>
 </body>
 </html>
