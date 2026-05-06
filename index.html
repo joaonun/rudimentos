@@ -1151,6 +1151,9 @@ function playSound(key) {
 
 function doUnlock(e) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
+  // Create AudioContext synchronously inside user gesture (required by iOS)
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   initAudioPools();
   playSound('click2');
   document.getElementById('audio-overlay').style.display = 'none';
@@ -1167,7 +1170,7 @@ function playStick(isRight, isGrace, isAccent) {
 let currentRudiment = null;
 let bpm = 80;
 let isPlaying = false;
-let metroIntervalId = null;
+// metronome uses Web Audio clock (see scheduler function)
 let stepIdx = 0;
 let beatIdx = 0;
 let tapTimes = [];
@@ -1409,49 +1412,120 @@ function buildNonGrace(pattern) {
   nonGraceIndices = pattern.map((n,i) => n.grace ? null : i).filter(i => i !== null);
 }
 
-function playStep() {
-  const r = currentRudiment;
-  if (!r) return;
+// ── WEB AUDIO CLOCK SCHEDULER ────────────────
+// Uses AudioContext.currentTime as the clock source — immune to setTimeout/setInterval
+// drift on iOS Safari. Schedules audio slightly ahead, updates visuals via requestAnimationFrame.
 
-  const beatPipIdx = beatIdx % 4;
-  document.querySelectorAll('.beat-pip').forEach((p,i) => {
-    p.classList.remove('on','on-accent');
-    if (i === beatPipIdx) p.classList.add(beatPipIdx === 0 ? 'on-accent' : 'on');
-  });
+let audioCtx = null;
+let nextNoteTime = 0;       // when the next note should sound (AudioContext time)
+let scheduleAheadTime = 0.1; // seconds to look ahead
+let lookahead = 25;          // ms between scheduler calls
+let schedulerTimer = null;
+let visualQueue = [];        // notes scheduled but not yet shown visually
 
-  // Beat pips mark the time visually — no separate click sound needed
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
 
-  const noteIdx = nonGraceIndices[stepIdx % nonGraceIndices.length];
-  const note = r.pattern[noteIdx];
-  const hand = note.h.toUpperCase();
-  playStick(hand === 'R', false, !!note.accent);
+function scheduleNote(time, noteIndex, isGrace, isRight, isAccent) {
+  // Schedule sound at precise AudioContext time
+  const pool = audioPools[isGrace ? 'grace' : isAccent ? (isRight ? 'R_acc' : 'L_acc') : (isRight ? 'R' : 'L')];
+  if (!pool) return;
+  let el = pool.find(a => a.ended || a.currentTime === 0);
+  if (!el) el = pool[0];
 
-  // Grace note before
-  if (noteIdx > 0) {
-    const prev = r.pattern[noteIdx - 1];
-    if (prev && prev.grace) playStick(prev.h.toUpperCase() === 'R', true, false);
+  const ctx = getAudioCtx();
+  const delay = Math.max(0, time - ctx.currentTime);
+
+  // Use setTimeout with the exact remaining delay — much tighter than setInterval
+  setTimeout(() => {
+    el.currentTime = 0;
+    el.play().catch(() => {});
+  }, delay * 1000);
+
+  // Queue for visual update
+  visualQueue.push({ time, stepVisual: noteIndex });
+}
+
+function scheduler() {
+  if (!isPlaying || !currentRudiment) return;
+  const ctx = getAudioCtx();
+
+  while (nextNoteTime < ctx.currentTime + scheduleAheadTime) {
+    const totalSteps = nonGraceIndices.length;
+    const noteIdx = nonGraceIndices[stepIdx % totalSteps];
+    const note = currentRudiment.pattern[noteIdx];
+    const hand = note.h.toUpperCase();
+
+    // Schedule grace note slightly before main note
+    if (noteIdx > 0) {
+      const prev = currentRudiment.pattern[noteIdx - 1];
+      if (prev && prev.grace) {
+        scheduleNote(nextNoteTime - 0.03, stepIdx % totalSteps, true, prev.h.toUpperCase() === 'R', false);
+      }
+    }
+
+    // Schedule main note
+    scheduleNote(nextNoteTime, stepIdx % totalSteps, false, hand === 'R', !!note.accent);
+
+    // Beat pip index
+    const beatPipIdx = beatIdx % 4;
+    visualQueue.push({ time: nextNoteTime, beatPip: beatPipIdx, stepVisual: stepIdx % totalSteps });
+
+    nextNoteTime += 60.0 / bpm;
+    stepIdx++;
+    beatIdx++;
   }
 
-  renderNotation(r, stepIdx % nonGraceIndices.length);
-  stepIdx++;
-  beatIdx++;
+  schedulerTimer = setTimeout(scheduler, lookahead);
+}
+
+function drawVisuals() {
+  if (!isPlaying) return;
+  requestAnimationFrame(drawVisuals);
+
+  const ctx = getAudioCtx();
+  const now = ctx.currentTime;
+
+  while (visualQueue.length > 0 && visualQueue[0].time <= now + 0.01) {
+    const item = visualQueue.shift();
+    if (item.beatPip !== undefined) {
+      document.querySelectorAll('.beat-pip').forEach((p, i) => {
+        p.classList.remove('on', 'on-accent');
+        if (i === item.beatPip) p.classList.add(item.beatPip === 0 ? 'on-accent' : 'on');
+      });
+    }
+    if (item.stepVisual !== undefined && currentRudiment) {
+      renderNotation(currentRudiment, item.stepVisual);
+    }
+  }
 }
 
 function startPlay() {
   if (!currentRudiment) return;
   buildNonGrace(currentRudiment.pattern);
-  isPlaying = true; stepIdx = 0; beatIdx = 0;
-  const iv = Math.round(60000 / bpm);
-  playStep();
-  metroIntervalId = setInterval(playStep, iv);
+  isPlaying = true;
+  stepIdx = 0;
+  beatIdx = 0;
+  visualQueue = [];
+
+  const ctx = getAudioCtx();
+  nextNoteTime = ctx.currentTime + 0.05; // small startup delay
+
+  scheduler();
+  requestAnimationFrame(drawVisuals);
+
   const btn = document.getElementById('play-btn');
   btn.textContent = '⏹ Stop'; btn.classList.add('running');
 }
 
 function stopPlay() {
   isPlaying = false;
-  clearInterval(metroIntervalId);
-  document.querySelectorAll('.beat-pip').forEach(p => p.classList.remove('on','on-accent'));
+  clearTimeout(schedulerTimer);
+  visualQueue = [];
+  document.querySelectorAll('.beat-pip').forEach(p => p.classList.remove('on', 'on-accent'));
   if (currentRudiment) renderNotation(currentRudiment, -1);
   const btn = document.getElementById('play-btn');
   btn.textContent = '▶ Play'; btn.classList.remove('running');
