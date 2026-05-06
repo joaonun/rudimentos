@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rudimentos PAS — Treinador</title>
+<title>Rudimentos PAS — Treinador 1055</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
@@ -1419,7 +1419,7 @@ function playStep() {
     if (i === beatPipIdx) p.classList.add(beatPipIdx === 0 ? 'on-accent' : 'on');
   });
 
-  playClick(beatPipIdx === 0);
+  // Beat pips mark the time visually — no separate click sound needed
 
   const noteIdx = nonGraceIndices[stepIdx % nonGraceIndices.length];
   const note = r.pattern[noteIdx];
