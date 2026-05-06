@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rudimentos PAS — Treinador</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1510">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rudimentos">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --bg:#f5f0e8;
+  --paper:#fff;
+  --ink:#1a1510;
+  --ink2:#3d3428;
+  --muted:#8a7d6a;
+  --border:#d4c9b5;
+  --R:#c0392b;
+  --L:#1a5276;
+  --shadow:rgba(26,21,16,0.1);
+  --sidebar-w:240px;
+}
+
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Barlow Condensed',sans-serif;
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ── TOP BAR ── */
+.topbar{
+  height:48px;
+  background:var(--ink);
+  color:#f5f0e8;
+  display:flex;
+  align-items:center;
+  padding:0 16px;
+  gap:16px;
+  flex-shrink:0;
+  z-index:10;
+}
+.topbar-logo{
+  font-size:1.2rem;
+  font-weight:900;
+  letter-spacing:4px;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.topbar-name{
+  font-size:1rem;
+  font-weight:700;
+  letter-spacing:2px;
+  color:#f5f0e8;
+  flex:1;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.topbar-nav{
+  display:flex;
+  gap:6px;
+  align-items:center;
+}
+.tnav-btn{
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.15);
+  color:#f5f0e8;
+  width:30px;height:30px;
+  border-radius:5px;
+  cursor:pointer;
+  font-size:0.85rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:background 0.12s;
+}
+.tnav-btn:hover{background:rgba(255,255,255,0.18);}
+
+/* ── BODY LAYOUT ── */
+.body-layout{
+  display:flex;
+  flex:1;
+  overflow:hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);
+  min-width:var(--sidebar-w);
+  background:var(--ink);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  transition:width 0.2s,min-width 0.2s;
+  flex-shrink:0;
+}
+.sidebar.collapsed{width:0;min-width:0;}
+
+.sidebar-search{
+  padding:8px 10px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.sidebar-search select,
+.sidebar-search input{
+  width:100%;
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:5px;
+  padding:5px 10px;
+  color:#f5f0e8;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.7rem;
+  outline:none;
+  cursor:pointer;
+}
+.sidebar-search select{
+  margin-bottom:6px;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(245,240,232,0.4)'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  background-color:rgba(255,255,255,0.07);
+}
+.sidebar-search select option{background:#1a1510;color:#f5f0e8;}
+.sidebar-search input{cursor:text;}
+.sidebar-search input::placeholder{color:rgba(245,240,232,0.25);}
+
+.rudiment-list{
+  overflow-y:auto;
+  flex:1;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,0.1) transparent;
+}
+
+.cat-label{
+  font-size:0.55rem;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:rgba(245,240,232,0.22);
+  padding:8px 12px 3px;
+  font-family:'JetBrains Mono',monospace;
+}
+
+.rudiment-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:5px 12px;
+  cursor:pointer;
+  border-left:2px solid transparent;
+  transition:background 0.1s;
+}
+.rudiment-item:hover{background:rgba(255,255,255,0.05);}
+.rudiment-item.active{background:rgba(255,255,255,0.1);border-left-color:var(--R);}
+
+.item-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.58rem;
+  color:rgba(245,240,232,0.22);
+  min-width:18px;
+  text-align:right;
+}
+.item-name-wrap{}
+.item-name{
+  font-size:0.82rem;
+  font-weight:600;
+  color:rgba(245,240,232,0.85);
+  line-height:1.2;
+}
+.item-name-en{
+  font-size:0.58rem;
+  color:rgba(245,240,232,0.3);
+  font-family:'JetBrains Mono',monospace;
+  line-height:1.2;
+}
+
+/* ── MAIN CONTENT ── */
+.main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:var(--bg);
+}
+
+/* ── PLAYER BAR ── */
+.player-bar{
+  background:var(--paper);
+  border-bottom:2px solid var(--border);
+  padding:12px 20px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex-shrink:0;
+  box-shadow:0 2px 8px var(--shadow);
+  flex-wrap:wrap;
+}
+
+.play-btn{
+  padding:10px 28px;
+  background:var(--R);
+  border:none;
+  border-radius:7px;
+  color:white;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:1.1rem;
+  font-weight:700;
+  letter-spacing:2px;
+  cursor:pointer;
+  transition:background 0.12s;
+  text-transform:uppercase;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.play-btn:hover{background:#a93226;}
+.play-btn.running{background:#555;}
+
+.bpm-group{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+.bpm-adj-col{display:flex;flex-direction:column;gap:3px;}
+.adj-btn{
+  background:var(--bg);
+  border:1px solid var(--border);
+  color:var(--ink);
+  width:22px;height:17px;
+  border-radius:3px;
+  cursor:pointer;
+  font-size:0.65rem;
+  display:flex;align-items:center;justify-content:center;
+}
+.adj-btn:hover{background:var(--border);}
+.bpm-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:2.2rem;
+  font-weight:700;
+  color:var(--ink);
+  line-height:1;
+  min-width:60px;
+  text-align:center;
+}
+.bpm-unit{
+  font-size:0.6rem;
+  letter-spacing:2px;
+  color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+}
+
+.bpm-slider-wrap{
+  display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;max-width:260px;
+}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:3px;
+  background:var(--border);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;
+  border-radius:50%;background:var(--R);cursor:pointer;
+  box-shadow:0 0 4px rgba(192,57,43,0.4);
+}
+
+.beat-pips{display:flex;gap:6px;align-items:center;}
+.beat-pip{
+  width:10px;height:10px;border-radius:50%;
+  background:rgba(0,0,0,0.1);
+  transition:all 0.05s;
+}
+.beat-pip.on{background:var(--R);box-shadow:0 0 6px var(--R);}
+.beat-pip.on-accent{background:var(--ink);box-shadow:0 0 8px rgba(0,0,0,0.4);}
+
+.tap-btn{
+  padding:8px 14px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:6px;
+  color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.68rem;
+  letter-spacing:1px;
+  cursor:pointer;
+  transition:all 0.1s;
+  white-space:nowrap;
+}
+.tap-btn:active{background:var(--border);color:var(--ink);}
+
+/* ── SCORE AREA ── */
+.score-area{
+  flex:1;
+  overflow-y:auto;
+  padding:20px 24px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+/* Welcome */
+.welcome-box{
+  background:var(--paper);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:40px;
+  text-align:center;
+}
+.welcome-title{
+  font-size:2.5rem;font-weight:900;letter-spacing:4px;text-transform:uppercase;
+  color:var(--ink);margin-bottom:8px;
+}
+.welcome-sub{
+  font-size:0.8rem;color:var(--muted);letter-spacing:2px;
+  font-family:'JetBrains Mono',monospace;
+}
+.cat-cards{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:12px;margin-top:28px;
+}
+.cat-card{
+  background:var(--bg);border:2px solid var(--border);border-radius:10px;
+  padding:14px;cursor:pointer;transition:all 0.15s;text-align:left;
+}
+.cat-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px var(--shadow);}
+.cat-card-title{font-size:1.1rem;font-weight:900;letter-spacing:2px;text-transform:uppercase;}
+.cat-card-count{font-size:0.6rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px;letter-spacing:2px;}
+.cat-bar{height:3px;border-radius:2px;margin-top:10px;}
+
+/* ── INFO ROW ── */
+.info-row{
+  display:flex;gap:12px;align-items:flex-start;
+  background:var(--paper);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 18px;
+}
+.info-desc{flex:1;font-size:0.95rem;color:var(--ink2);line-height:1.55;}
+.info-tips{
+  display:flex;flex-direction:column;gap:5px;min-width:160px;
+  border-left:1px solid var(--border);padding-left:14px;
+}
+.tip-row{
+  display:flex;align-items:center;gap:7px;
+  font-size:0.75rem;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;
+}
+.tip-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+/* ── NOTATION (sheet music style) ── */
+.notation-box{
+  background:var(--paper);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:16px 20px 20px;
+  flex:1;
+}
+.notation-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
+.notation-title-lbl{
+  font-size:0.65rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--muted);font-family:'JetBrains Mono',monospace;
+}
+.notation-legend{display:flex;gap:14px;}
+.leg{
+  font-size:0.8rem;font-family:'JetBrains Mono',monospace;
+  font-weight:700;letter-spacing:1px;
+}
+.leg-R{color:var(--R);}
+.leg-L{color:var(--L);}
+
+/* Staff */
+.staff-wrap{overflow-x:auto;padding-bottom:4px;}
+.staff{position:relative;}
+.staff-lines{
+  position:absolute;
+  top:0;left:60px;right:0;bottom:28px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  pointer-events:none;
+}
+.staff-line{
+  height:1px;background:var(--ink);opacity:0.18;
+}
+.notes-area{
+  display:flex;align-items:flex-end;
+  position:relative;
+  min-height:90px;
+  padding-left:60px;
+  padding-bottom:26px;
+  gap:0;
+}
+.staff-label{
+  position:absolute;left:0;bottom:26px;
+  font-size:0.6rem;letter-spacing:1px;color:var(--muted);
+  font-family:'JetBrains Mono',monospace;text-transform:uppercase;
+  width:56px;text-align:right;padding-right:6px;
+  line-height:44px;
+}
+
+/* Note cell */
+.ncell{
+  display:flex;flex-direction:column;align-items:center;
+  width:40px;min-width:40px;
+  cursor:default;
+  position:relative;
+}
+.ncell.is-grace{width:24px;min-width:24px;}
+
+.note-body{
+  width:22px;height:15px;
+  border-radius:50%;
+  border:2.5px solid var(--ink);
+  background:var(--ink);
+  position:relative;z-index:2;
+  transition:all 0.07s;
+  flex-shrink:0;
+  margin-top:auto;
+}
+.ncell.is-grace .note-body{width:13px;height:9px;border-width:2px;}
+
+.note-body.col-R{background:var(--R);border-color:var(--R);}
+.note-body.col-L{background:var(--L);border-color:var(--L);}
+.note-body.buzz{border-style:dashed;}
+
+.note-stem{
+  width:2px;height:32px;
+  background:var(--ink);
+  position:absolute;
+  right:9px;top:0;
+  z-index:1;
+}
+.ncell.is-grace .note-stem{right:6px;height:20px;}
+.note-stem.col-R{background:var(--R);}
+.note-stem.col-L{background:var(--L);}
+
+.hand-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.85rem;font-weight:700;
+  margin-top:5px;line-height:1;
+  position:absolute;bottom:0;
+}
+.hand-lbl.col-R{color:var(--R);}
+.hand-lbl.col-L{color:var(--L);}
+.hand-lbl.col-g{color:var(--muted);font-size:0.62rem;}
+
+/* Playhead highlight */
+.ncell.playhead .note-body{
+  outline:3px solid var(--R);
+  outline-offset:2px;
+  transform:scale(1.2);
+  z-index:5;
+}
+
+/* Accent mark */
+.accent-mark{
+  position:absolute;top:-2px;left:50%;transform:translateX(-50%);
+  font-size:0.9rem;color:var(--ink);font-weight:900;line-height:1;z-index:3;
+}
+
+/* Bar separator */
+.bar-sep{
+  width:2px;height:50px;
+  background:rgba(26,21,16,0.3);
+  margin:0 4px;
+  align-self:flex-end;
+  margin-bottom:26px;
+  flex-shrink:0;
+}
+.beat-sep{
+  width:1px;height:30px;
+  background:rgba(26,21,16,0.1);
+  margin:0 2px;
+  align-self:flex-end;
+  margin-bottom:26px;
+  flex-shrink:0;
+}
+
+/* Repeat signs */
+.rep{
+  display:flex;align-items:flex-end;gap:2px;
+  padding:0 4px;
+  flex-shrink:0;
+  margin-bottom:26px;
+}
+.rep-thick{width:3px;height:46px;background:var(--ink);border-radius:1px;}
+.rep-thin{width:1.5px;height:46px;background:var(--ink2);}
+.rep-dots{display:flex;flex-direction:column;gap:7px;justify-content:center;height:46px;}
+.rep-dot{width:5px;height:5px;border-radius:50%;background:var(--ink);}
+
+/* ── SPEED LADDER ── */
+.speed-box{
+  background:var(--paper);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 18px;
+}
+.speed-lbl{
+  font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px;
+}
+.speed-ladder{display:flex;gap:6px;flex-wrap:wrap;}
+.speed-step{
+  padding:5px 12px;border-radius:6px;
+  font-family:'JetBrains Mono',monospace;font-size:0.72rem;letter-spacing:1px;
+  border:1px solid var(--border);color:var(--muted);cursor:pointer;
+  transition:all 0.1s;background:var(--bg);
+}
+.speed-step:hover:not(.current){border-color:var(--ink2);color:var(--ink2);}
+.speed-step.current{background:#b7950b;color:white;border-color:#b7950b;}
+.speed-step.done{background:#1e8449;color:white;border-color:#1e8449;}
+
+/* ── AUDIO OVERLAY ── */
+#audio-overlay{
+  position:fixed;inset:0;
+  background:var(--ink);z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+}
+.ov-logo{
+  font-size:3rem;font-weight:900;letter-spacing:8px;color:var(--bg);text-transform:uppercase;
+}
+.ov-sub{
+  font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:3px;
+  color:rgba(245,240,232,0.3);
+}
+.ov-warn{
+  font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:2px;
+  color:#c0392b;
+}
+.ov-btn{
+  padding:14px 44px;background:var(--R);border:none;border-radius:8px;
+  color:white;font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;
+  font-weight:700;letter-spacing:4px;cursor:pointer;text-transform:uppercase;
+  transition:transform 0.12s,background 0.12s;
+  box-shadow:0 6px 24px rgba(192,57,43,0.4);margin-top:8px;
+}
+.ov-btn:hover{transform:scale(1.04);background:#a93226;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .sidebar{
+    position:fixed;top:48px;left:0;height:calc(100vh - 48px);
+    z-index:100;transform:translateX(-100%);transition:transform 0.22s;
+  }
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-overlay{
+    display:none;position:fixed;top:48px;inset:0;
+    background:rgba(0,0,0,0.45);z-index:99;
+  }
+  .sidebar.open ~ .sidebar-overlay{display:block;}
+  .info-tips{display:none;}
+  .player-bar{padding:8px 12px;gap:10px;}
+  .bpm-num{font-size:1.6rem;}
+  .score-area{padding:12px;}
+}
+</style>
+</head>
+<body>
+
+<div id="audio-overlay">
+  <div class="ov-logo">Rudimentos</div>
+  <div class="ov-sub">40 Rudimentos Oficiais PAS · Treinador</div>
+  <div class="ov-warn">🔇 Verifique se o modo silencioso está desligado</div>
+  <button class="ov-btn" id="unlock-btn" onclick="doUnlock()" ontouchend="doUnlock()">▶ Começar</button>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">Rudimentos</div>
+  <button class="tnav-btn" onclick="toggleSidebar()" title="Lista" style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;width:auto;padding:0 10px;letter-spacing:1px;">☰ Lista</button>
+  <div class="topbar-name" id="topbar-name">Selecione um Rudimento</div>
+  <div class="topbar-nav">
+    <button class="tnav-btn" onclick="navigateRudiment(-1)">←</button>
+    <button class="tnav-btn" onclick="navigateRudiment(1)">→</button>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-search">
+      <select id="cat-filter" onchange="filterCat(this.value)">
+        <option value="">Todos os Tipos</option>
+        <option value="roll">Rulos</option>
+        <option value="diddle">Diddles</option>
+        <option value="flam">Flams</option>
+        <option value="drag">Drags</option>
+      </select>
+      <input type="text" id="text-filter" placeholder="Buscar rudimento..." oninput="filterList(this.value)">
+    </div>
+    <div class="rudiment-list" id="rudiment-list"></div>
+  </aside>
+  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- PLAYER BAR -->
+    <div class="player-bar">
+      <button class="play-btn" id="play-btn" onclick="togglePlay()">▶ Play</button>
+      <div class="bpm-group">
+        <div class="bpm-adj-col">
+          <button class="adj-btn" onclick="adjBPM(5)">▲</button>
+          <button class="adj-btn" onclick="adjBPM(-5)">▼</button>
+        </div>
+        <div>
+          <div class="bpm-num" id="bpm-display">80</div>
+          <div class="bpm-unit">BPM</div>
+        </div>
+      </div>
+      <div class="bpm-slider-wrap">
+        <input type="range" min="30" max="300" value="80" id="bpm-slider" oninput="setBPM(+this.value)">
+        <div style="display:flex;justify-content:space-between;font-size:0.55rem;color:var(--muted);font-family:'JetBrains Mono',monospace;"><span>30</span><span>BPM</span><span>300</span></div>
+      </div>
+      <div class="beat-pips" id="beat-pips">
+        <div class="beat-pip" id="bp0"></div>
+        <div class="beat-pip" id="bp1"></div>
+        <div class="beat-pip" id="bp2"></div>
+        <div class="beat-pip" id="bp3"></div>
+      </div>
+      <button class="tap-btn" onclick="tapTempo()">TAP</button>
+    </div>
+
+    <!-- SCORE AREA -->
+    <div class="score-area" id="score-area">
+      <!-- Welcome state -->
+      <div class="welcome-box" id="welcome-box">
+        <div class="welcome-title">40 Rudimentos PAS</div>
+        <div class="welcome-sub">Selecione um rudimento na lista  ·  ☰ Lista</div>
+        <div class="cat-cards" id="cat-cards"></div>
+      </div>
+
+      <!-- Rudiment view -->
+      <div id="rudiment-view" style="display:none;display:none;flex-direction:column;gap:14px;">
+        <div class="info-row" id="info-row"></div>
+        <div class="notation-box" id="notation-box">
+          <div class="notation-top">
+            <div class="notation-title-lbl">Notação</div>
+            <div class="notation-legend">
+              <span class="leg leg-R">D = Direita</span>
+              <span class="leg leg-L">E = Esquerda</span>
+            </div>
+          </div>
+          <div class="staff-wrap">
+            <div class="staff" id="staff">
+              <div class="notes-area" id="notes-area">
+                <div class="staff-label">Baqueta</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="speed-box">
+          <div class="speed-lbl">Escada de Velocidade</div>
+          <div class="speed-ladder" id="speed-ladder"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const RUDIMENTS = [
+  // ── RULOS DE TOQUES SIMPLES ─────────────────────
+  {
+    id: 1, name: 'Rulo Simples', nameEn: 'Single Stroke Roll', cat: 'roll',
+    desc: 'O rudimento mais fundamental: alternância simples D E D E. Base de toda técnica de bateria. Pratique lento antes de acelerar.',
+    tips: ['Alternância perfeita D E D E', 'Pulso relaxado', 'Velocidade uniforme'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},
+      {h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 2, name: 'Rulo Simples de 4 Toques', nameEn: 'Single Stroke Four', cat: 'roll',
+    desc: 'Quatro toques alternados em tercina. Acento no primeiro toque de cada grupo.',
+    tips: ['Tercinas!', 'D E D E', 'Acento no 1º golpe'],
+    bpm: 70,
+    pattern: [
+      {h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},
+      {h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},
+    ], beats:2, subdivision:4,
+  },
+  {
+    id: 3, name: 'Rulo Simples de 7 Toques', nameEn: 'Single Stroke Seven', cat: 'roll',
+    desc: 'Sete toques alternados em sextina. D E D E D E D.',
+    tips: ['Sextinas', 'D E D E D E D', 'Acento no início'],
+    bpm: 70,
+    pattern: [
+      {h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},
+      {h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},
+    ], beats:4, subdivision:4,
+  },
+  // ── RULOS DE TOQUES MÚLTIPLOS ────────────────────
+  {
+    id: 4, name: 'Rulo Triplo / Três Francês', nameEn: 'Triple Stroke Roll', cat: 'roll',
+    desc: 'Três toques por mão: DDD EEE. Também chamado de Três Francês.',
+    tips: ['3 toques iguais por mão', 'DDD EEE', 'Evite apressar'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'L'},
+      {h:'R'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'L'},
+    ], beats:4, subdivision:3,
+  },
+  {
+    id: 5, name: 'Rufo / Rulo de Pressão', nameEn: 'Buzz / Multiple Bounce Roll', cat: 'roll',
+    desc: 'Cada baqueta rebate múltiplas vezes (buzz). Faz um som contínuo e suave. Muito usado em orquestra.',
+    tips: ['Deixe a baqueta rebater', 'Pressão moderada', 'Som contínuo'],
+    bpm: 60,
+    pattern: [
+      {h:'R',buzz:true},{h:'L',buzz:true},
+      {h:'R',buzz:true},{h:'L',buzz:true},
+    ], beats:2, subdivision:2,
+  },
+  // ── RULOS DE TOQUES DUPLOS ───────────────────────
+  {
+    id: 6, name: 'Rulo Duplo', nameEn: 'Double Stroke Open Roll', cat: 'roll',
+    desc: 'Dois toques por mão: DD EE DD EE. Fundação de todos os rulos de toques duplos.',
+    tips: ['2 toques por mão', 'DD EE DD EE', 'Rebote natural'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 7, name: 'Rulo de 5 Toques', nameEn: '5 Stroke Roll', cat: 'roll',
+    desc: 'DDEED + acento. Dois doubles mais acento. DD EE D.',
+    tips: ['DD EE D(acento)', 'Acento no último', '5 notas totais'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',accent:true},
+      {h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',accent:true},
+    ], beats:2, subdivision:5,
+  },
+  {
+    id: 8, name: 'Rulo de 6 Toques', nameEn: '6 Stroke Roll', cat: 'roll',
+    desc: 'D EE DD E. Alterna acentos: acento no 1º e no último.',
+    tips: ['D EE DD E', 'Dois acentos', '6 notas'],
+    bpm: 70,
+    pattern: [
+      {h:'R',accent:true},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',accent:true},
+      {h:'L',accent:true},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',accent:true},
+    ], beats:2, subdivision:6,
+  },
+  {
+    id: 9, name: 'Rulo de 7 Toques', nameEn: '7 Stroke Roll', cat: 'roll',
+    desc: 'DD EE DD E. Três doubles mais acento.',
+    tips: ['3 doubles + acento', 'DD EE DD E', '7 notas'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',accent:true},
+      {h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',accent:true},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 10, name: 'Rulo de 9 Toques', nameEn: '9 Stroke Roll', cat: 'roll',
+    desc: 'DDEEDDEE D. Quatro doubles mais acento.',
+    tips: ['4 doubles + acento', 'DDEEDDEE D', 'Preenche 2 tempos'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',accent:true},
+      {h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',accent:true},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 11, name: 'Rulo de 10 Toques', nameEn: '10 Stroke Roll', cat: 'roll',
+    desc: 'DDEEDDEE DE. Quatro doubles mais dois singles com acentos.',
+    tips: ['4 doubles + 2 singles', 'Dois acentos no final', '10 notas'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',accent:true},{h:'L',accent:true},
+      {h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',accent:true},{h:'R',accent:true},
+    ], beats:4, subdivision:5,
+  },
+  {
+    id: 12, name: 'Rulo de 11 Toques', nameEn: '11 Stroke Roll', cat: 'roll',
+    desc: 'DDEEDDEEDD E. Cinco doubles mais acento.',
+    tips: ['5 doubles + acento', 'DDEEDDEEDD E', '11 notas'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',accent:true},
+      {h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',accent:true},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 13, name: 'Rulo de 13 Toques', nameEn: '13 Stroke Roll', cat: 'roll',
+    desc: 'Seis doubles mais acento. DDEEDDEEDDE E D.',
+    tips: ['6 doubles + acento', '13 notas', 'Mantém velocidade'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',accent:true},
+      {h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',accent:true},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 14, name: 'Rulo de 15 Toques', nameEn: '15 Stroke Roll', cat: 'roll',
+    desc: 'Sete doubles mais acento. Preenche exatamente um compasso de 4/4.',
+    tips: ['7 doubles + acento', 'Preenche 1 compasso', '15 notas'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',accent:true},
+      {h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},
+      {h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',accent:true},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 15, name: 'Rulo de 17 Toques', nameEn: '17 Stroke Roll', cat: 'roll',
+    desc: 'Oito doubles mais acento. O mais longo dos rulos numerados.',
+    tips: ['8 doubles + acento', '17 notas', 'Começe devagar'],
+    bpm: 60,
+    pattern: [
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},
+      {h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R',accent:true},
+      {h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},
+      {h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},{h:'L',accent:true},
+    ], beats:4, subdivision:4,
+  },
+
+  // ── DIDDLES ──────────────────────────────────────
+  {
+    id: 16, name: 'Paradiddle', nameEn: 'Single Paradiddle', cat: 'diddle',
+    desc: 'D E D D E D E E — o rudimento mais importante para bateristas. RLRR LRLL. Cria padrões de 4 notas perfeitos para grooves.',
+    tips: ['D E D D / E D E E', 'Acento no 1º toque', 'Metrônomo lento!'],
+    bpm: 70,
+    pattern: [
+      {h:'R',accent:true},{h:'L'},{h:'R'},{h:'R'},
+      {h:'L',accent:true},{h:'R'},{h:'L'},{h:'L'},
+      {h:'R',accent:true},{h:'L'},{h:'R'},{h:'R'},
+      {h:'L',accent:true},{h:'R'},{h:'L'},{h:'L'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 17, name: 'Paradiddle Duplo', nameEn: 'Double Paradiddle', cat: 'diddle',
+    desc: 'D E D E D D — E D E D E E. Seis notas por grupo. Excelente para 6/8.',
+    tips: ['D E D E D D', 'Seis notas por grupo', 'Ótimo para 6/8'],
+    bpm: 70,
+    pattern: [
+      {h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'R'},
+      {h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'L'},
+      {h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'R'},
+      {h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'L'},
+    ], beats:4, subdivision:6,
+  },
+  {
+    id: 18, name: 'Paradiddle Triplo', nameEn: 'Triple Paradiddle', cat: 'diddle',
+    desc: 'D E D E D E D D — oito notas. Cria frases longas e fluidas.',
+    tips: ['D E D E D E D D', '8 notas por grupo', 'Fluidez antes de velocidade'],
+    bpm: 70,
+    pattern: [
+      {h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'R'},
+      {h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'R'},{h:'L'},{h:'L'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 19, name: 'Paradiddle-Diddle', nameEn: 'Single Paradiddle-diddle', cat: 'diddle',
+    desc: 'D E D D E E — seis notas com dois doubles no final.',
+    tips: ['D E D D E E', 'Dois doubles no fim', 'Divide o compasso em 6'],
+    bpm: 70,
+    pattern: [
+      {h:'R',accent:true},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},
+      {h:'L',accent:true},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},
+      {h:'R',accent:true},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},
+      {h:'L',accent:true},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},
+    ], beats:4, subdivision:6,
+  },
+
+  // ── FLAMS ────────────────────────────────────────
+  {
+    id: 20, name: 'Flam', nameEn: 'Flam', cat: 'flam',
+    desc: 'Appoggiatura (nota de graça) seguida de nota principal. A grace note toca imediatamente antes, criando um som "gordo". eD / dE.',
+    tips: ['Grace note baixinha', 'Grace quase junto', 'Mão principal mais alta'],
+    bpm: 70,
+    pattern: [
+      {h:'l',grace:true},{h:'R',accent:true},
+      {h:'r',grace:true},{h:'L',accent:true},
+      {h:'l',grace:true},{h:'R',accent:true},
+      {h:'r',grace:true},{h:'L',accent:true},
+    ], beats:2, subdivision:2,
+  },
+  {
+    id: 21, name: 'Flam Acento', nameEn: 'Flam Accent', cat: 'flam',
+    desc: 'eD E D — dE D E. Flam em tercinas alternadas. Muito usado em marchas.',
+    tips: ['Tercinas!', 'eD E D / dE D E', 'Flam no acento'],
+    bpm: 70,
+    pattern: [
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},
+    ], beats:4, subdivision:3,
+  },
+  {
+    id: 22, name: 'Flam Tap', nameEn: 'Flam Tap', cat: 'flam',
+    desc: 'eD D — dE E. Flam seguido de tap com a mesma mão.',
+    tips: ['eD D / dE E', 'Tap com mesma mão', 'Dinâmica flam > tap'],
+    bpm: 70,
+    pattern: [
+      {h:'r',grace:true},{h:'L',accent:true},{h:'L'},
+      {h:'l',grace:true},{h:'R',accent:true},{h:'R'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'L'},
+      {h:'l',grace:true},{h:'R',accent:true},{h:'R'},
+    ], beats:4, subdivision:3,
+  },
+  {
+    id: 23, name: 'Flamacue', nameEn: 'Flamacue', cat: 'flam',
+    desc: 'eD E D E D — flam + quatro singles com acento no 4º golpe.',
+    tips: ['eD E D E(acento) D', 'Acento no 4º', 'Atenção ao timing'],
+    bpm: 70,
+    pattern: [
+      {h:'r',grace:true},{h:'L'},{h:'R'},{h:'L'},{h:'R',accent:true},{h:'L'},
+      {h:'l',grace:true},{h:'R'},{h:'L'},{h:'R'},{h:'L',accent:true},{h:'R'},
+    ], beats:2, subdivision:6,
+  },
+  {
+    id: 24, name: 'Flam Paradiddle', nameEn: 'Flam Paradiddle / Flamadiddle', cat: 'flam',
+    desc: 'eD E D D — flam no início do paradiddle. Cinco notas por grupo.',
+    tips: ['eD E D D', 'Flam + EDEE', 'Sinta os 5 tempos'],
+    bpm: 70,
+    pattern: [
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'R'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'L'},
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'R'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'L'},
+    ], beats:4, subdivision:5,
+  },
+  {
+    id: 25, name: 'Flam Paradiddle II', nameEn: 'Single Flammed Mill', cat: 'flam',
+    desc: 'eD E D E D — flam alternado com singles. eD E D eE D E D.',
+    tips: ['eD E D E D', 'Flams alternados', 'Velocidade uniforme nas graces'],
+    bpm: 70,
+    pattern: [
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},
+    ], beats:4, subdivision:5,
+  },
+  {
+    id: 26, name: 'Flam Paradiddle-Diddle', nameEn: 'Flam Paradiddle-diddle', cat: 'flam',
+    desc: 'eD E D D E E — flam + paradiddle-diddle. Seis notas com flam no início.',
+    tips: ['eD E D D E E', 'Seis notas', 'Combina três rudimentos'],
+    bpm: 70,
+    pattern: [
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'R'},{h:'L'},{h:'L'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'L'},{h:'R'},{h:'R'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 27, name: 'Pataflafla', nameEn: 'Pataflafla', cat: 'flam',
+    desc: 'eD E dE D — dois flams com singles entre eles. Muito usado em marching percussion.',
+    tips: ['eD E dE D', 'Dois flams por grupo', 'Graces alternadas'],
+    bpm: 70,
+    pattern: [
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'r',grace:true},{h:'L',accent:true},{h:'R'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'l',grace:true},{h:'R',accent:true},{h:'L'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 28, name: 'Flam Tercina', nameEn: 'Swiss Army Triplet', cat: 'flam',
+    desc: 'eD D E — flam em tercina. Excelente para jazz e shuffle.',
+    tips: ['Tercinas!', 'eD D E / dE E D', 'Natural no jazz'],
+    bpm: 70,
+    pattern: [
+      {h:'l',grace:true},{h:'R',accent:true},{h:'R'},{h:'L'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'L'},{h:'R'},
+      {h:'l',grace:true},{h:'R',accent:true},{h:'R'},{h:'L'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'L'},{h:'R'},
+    ], beats:4, subdivision:3,
+  },
+  {
+    id: 29, name: 'Flam Tap Invertido', nameEn: 'Inverted Flam Tap', cat: 'flam',
+    desc: 'eD E — tap ANTES do flam: dE D. Inversão do Flam Tap.',
+    tips: ['Tap ANTES do flam', 'eD E / dE D', 'Dinâmica invertida'],
+    bpm: 70,
+    pattern: [
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'l',grace:true},{h:'R',accent:true},{h:'L'},
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'r',grace:true},{h:'L',accent:true},{h:'R'},
+    ], beats:4, subdivision:3,
+  },
+  {
+    id: 30, name: 'Flam Drag', nameEn: 'Flam Drag', cat: 'flam',
+    desc: 'eD E E D — flam + drag. Cinco notas combinando flam e drag.',
+    tips: ['eD EE D', 'Flam + drag', 'Atenção à dinâmica'],
+    bpm: 70,
+    pattern: [
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'L'},{h:'R'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'R'},{h:'L'},
+      {h:'l',grace:true},{h:'R',accent:true},{h:'L'},{h:'L'},{h:'R'},
+      {h:'r',grace:true},{h:'L',accent:true},{h:'R'},{h:'R'},{h:'L'},
+    ], beats:4, subdivision:5,
+  },
+
+  // ── DRAGS ────────────────────────────────────────
+  {
+    id: 31, name: 'Drag', nameEn: 'Drag', cat: 'drag',
+    desc: 'Dois toques de grace note (ee ou dd) seguidos de nota principal. O drag "arrasta" na nota. eeD / ddE.',
+    tips: ['eeD / ddE', 'Graces bem próximas', 'Quase um rulo de 3'],
+    bpm: 70,
+    pattern: [
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},
+    ], beats:2, subdivision:3,
+  },
+  {
+    id: 32, name: 'Drag Tap', nameEn: 'Single Drag Tap', cat: 'drag',
+    desc: 'eeD E — drag seguido de tap na mão oposta.',
+    tips: ['eeD E / ddE D', 'Tap após o drag', 'Quatro notas totais'],
+    bpm: 70,
+    pattern: [
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 33, name: 'Drag Tap Duplo', nameEn: 'Double Drag Tap', cat: 'drag',
+    desc: 'eeD eeD E — dois drags seguidos de tap. Cinco notas totais.',
+    tips: ['Dois drags + tap', 'eeD eeD E', 'Cinco notas'],
+    bpm: 70,
+    pattern: [
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R'},{h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L'},{h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 34, name: 'Lição 25', nameEn: 'Lesson 25', cat: 'drag',
+    desc: 'eeD E D E — drag + três singles com acentos. Um dos rudimentos mais antigos.',
+    tips: ['Drag + 3 singles', 'eeD E D E', 'Rudimento histórico'],
+    bpm: 70,
+    pattern: [
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},
+    ], beats:4, subdivision:6,
+  },
+  {
+    id: 35, name: 'Dragadiddle', nameEn: 'Single Dragadiddle', cat: 'drag',
+    desc: 'D D E — E E D — drag com double no início. D DE E / E ED D.',
+    tips: ['D DE E / E ED D', 'Double + drag alternado', 'Seis notas'],
+    bpm: 70,
+    pattern: [
+      {h:'R',accent:true},{h:'R'},{h:'L'},{h:'L',accent:true},{h:'L'},{h:'R'},
+      {h:'R',accent:true},{h:'R'},{h:'L'},{h:'L',accent:true},{h:'L'},{h:'R'},
+    ], beats:4, subdivision:3,
+  },
+  {
+    id: 36, name: 'Drag Paradiddle I', nameEn: 'Drag Paradiddle #1', cat: 'drag',
+    desc: 'D eeD E D E E — drag no meio do paradiddle. Seis notas em sextina.',
+    tips: ['D eeD E D E E', '6 notas em sextina', 'Drag no 2º tempo'],
+    bpm: 70,
+    pattern: [
+      {h:'R'},{h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},{h:'L'},
+      {h:'L'},{h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},{h:'R'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 37, name: 'Drag Paradiddle II', nameEn: 'Drag Paradiddle #2', cat: 'drag',
+    desc: 'D eeD eeD E D E E — dois drags + paradiddle. Muito denso e complexo.',
+    tips: ['Dois drags!', 'D eeD eeD E D E E', 'Começe muito lento'],
+    bpm: 60,
+    pattern: [
+      {h:'R'},{h:'r',grace:true},{h:'r',grace:true},{h:'R'},{h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},{h:'R'},
+      {h:'L'},{h:'l',grace:true},{h:'l',grace:true},{h:'L'},{h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},{h:'L'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 38, name: 'Ratamacue', nameEn: 'Single Ratamacue', cat: 'drag',
+    desc: 'eeD E D E — drag + três singles em tercina. Muito usado em tambores de marcha.',
+    tips: ['eeD E D E', 'Tercinas!', 'Marching classic'],
+    bpm: 70,
+    pattern: [
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},
+    ], beats:4, subdivision:6,
+  },
+  {
+    id: 39, name: 'Ratamacue Duplo', nameEn: 'Double Ratamacue', cat: 'drag',
+    desc: 'eeD eeD E D E — dois drags + três singles em tercina.',
+    tips: ['Dois drags + 3 singles', 'eeD eeD E D E', 'Muita densidade'],
+    bpm: 60,
+    pattern: [
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R'},{h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L'},{h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},
+    ], beats:4, subdivision:4,
+  },
+  {
+    id: 40, name: 'Ratamacue Triplo', nameEn: 'Triple Ratamacue', cat: 'drag',
+    desc: 'eeD eeD eeD E D E — três drags + três singles. O mais denso dos ratamacues.',
+    tips: ['Três drags!', 'eeD eeD eeD E D E', 'Começe MUITO lento'],
+    bpm: 50,
+    pattern: [
+      {h:'r',grace:true},{h:'r',grace:true},{h:'R'},{h:'l',grace:true},{h:'l',grace:true},{h:'L'},{h:'r',grace:true},{h:'r',grace:true},{h:'R',accent:true},{h:'L'},{h:'R'},{h:'L'},
+      {h:'l',grace:true},{h:'l',grace:true},{h:'L'},{h:'r',grace:true},{h:'r',grace:true},{h:'R'},{h:'l',grace:true},{h:'l',grace:true},{h:'L',accent:true},{h:'R'},{h:'L'},{h:'R'},
+    ], beats:4, subdivision:4,
+  },
+];
+const CATS = {
+  roll:   { label: 'Rulos',   color: '#c0392b', tagCls: 'tag-roll' },
+  diddle: { label: 'Diddles', color: '#1a5276', tagCls: 'tag-diddle' },
+  flam:   { label: 'Flams',   color: '#1e8449', tagCls: 'tag-flam' },
+  drag:   { label: 'Drags',   color: '#b7950b', tagCls: 'tag-drag' },
+};
+
+
+// ── AUDIO ENGINE ──────────────────────────────
+// ── AUDIO ENGINE — Pure AudioContext synthesis (iOS precision) ────────────
+// No HTML Audio elements. All sounds generated and scheduled directly via
+// AudioContext, giving sample-accurate timing at any BPM on iOS Safari.
+
+let audioCtx = null;
+
+function getAC() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function doUnlock(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  // Must create AudioContext synchronously inside user gesture on iOS
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // Play a tiny silent buffer to fully unlock
+  const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf; src.connect(audioCtx.destination); src.start(0);
+  document.getElementById('audio-overlay').style.display = 'none';
+}
+
+// Synthesize a stick hit at a precise AudioContext time
+// isRight: pitch difference R vs L
+// isGrace: quiet, short
+// isAccent: louder, higher pitch
+function synthStick(ac, t, isRight, isGrace, isAccent) {
+  const freq  = isRight ? (isAccent ? 520 : 380) : (isAccent ? 420 : 300);
+  const vol   = isGrace ? 0.15 : isAccent ? 0.75 : 0.45;
+  const decay = isGrace ? 0.04 : isAccent ? 0.10 : 0.07;
+
+  // Oscillator (triangle = woodblock-like)
+  const osc  = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(freq * 1.5, t);
+  osc.frequency.exponentialRampToValueAtTime(freq, t + decay * 0.3);
+  osc.connect(gain); gain.connect(ac.destination);
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + decay);
+  osc.start(t); osc.stop(t + decay + 0.01);
+
+  // Short noise burst for attack transient
+  if (!isGrace) {
+    const sr   = ac.sampleRate;
+    const len  = Math.floor(sr * 0.018);
+    const nbuf = ac.createBuffer(1, len, sr);
+    const data = nbuf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = (Math.random()*2-1) * (1 - i/len);
+    const nsrc  = ac.createBufferSource();
+    const ngain = ac.createGain();
+    nsrc.buffer = nbuf;
+    nsrc.connect(ngain); ngain.connect(ac.destination);
+    ngain.gain.setValueAtTime(vol * 0.4, t);
+    ngain.gain.exponentialRampToValueAtTime(0.001, t + 0.018);
+    nsrc.start(t); nsrc.stop(t + 0.02);
+  }
+}
+
+// Schedule a stick sound at AudioContext time t
+function scheduleStick(t, isRight, isGrace, isAccent) {
+  const ac = getAC();
+  synthStick(ac, t, isRight, isGrace, isAccent);
+}
+
+// ── STATE ──────────────────────────────────────
+let currentRudiment = null;
+let bpm = 80;
+let isPlaying = false;
+// metronome uses Web Audio clock (see scheduler function)
+let stepIdx = 0;
+let beatIdx = 0;
+let tapTimes = [];
+let nonGraceIndices = [];
+
+// ── SIDEBAR ───────────────────────────────────
+function buildSidebar() {
+  const list = document.getElementById('rudiment-list');
+  list.innerHTML = '';
+  const cats = ['roll','diddle','flam','drag'];
+  cats.forEach(cat => {
+    const items = RUDIMENTS.filter(r => r.cat === cat);
+    const lbl = document.createElement('div');
+    lbl.className = 'cat-label';
+    lbl.textContent = CATS[cat].label;
+    lbl.dataset.cat = cat;
+    list.appendChild(lbl);
+    items.forEach(r => {
+      const el = document.createElement('div');
+      el.className = 'rudiment-item';
+      el.id = 'item-' + r.id;
+      el.dataset.cat = cat;
+      el.innerHTML = `<span class="item-num">${String(r.id).padStart(2,'0')}</span>
+        <div class="item-name-wrap">
+          <div class="item-name">${r.name}</div>
+          ${r.nameEn && r.nameEn !== r.name ? `<div class="item-name-en">${r.nameEn}</div>` : ''}
+        </div>`;
+      el.onclick = () => selectRudiment(r);
+      list.appendChild(el);
+    });
+  });
+}
+
+function buildWelcome() {
+  const grid = document.getElementById('cat-cards');
+  grid.innerHTML = '';
+  ['roll','diddle','flam','drag'].forEach(cat => {
+    const count = RUDIMENTS.filter(r => r.cat === cat).length;
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.innerHTML = `<div class="cat-card-title" style="color:${CATS[cat].color}">${CATS[cat].label}</div>
+      <div class="cat-card-count">${count} rudimentos</div>
+      <div class="cat-bar" style="background:${CATS[cat].color}33;border:1px solid ${CATS[cat].color}44;"></div>`;
+    card.onclick = () => selectRudiment(RUDIMENTS.find(r => r.cat === cat));
+    grid.appendChild(card);
+  });
+}
+
+function filterList(q) {
+  const cat = document.getElementById('cat-filter')?.value || '';
+  applyFilters(cat, q.toLowerCase());
+}
+
+function filterCat(cat) {
+  const q = (document.getElementById('text-filter')?.value || '').toLowerCase();
+  applyFilters(cat, q);
+}
+
+function applyFilters(cat, q) {
+  document.querySelectorAll('.rudiment-item').forEach(el => {
+    const name = el.querySelector('.item-name').textContent.toLowerCase();
+    const nameEn = (el.querySelector('.item-name-en')?.textContent || '').toLowerCase();
+    const matchText = !q || name.includes(q) || nameEn.includes(q);
+    const itemCat = el.dataset.cat;
+    const matchCat = !cat || itemCat === cat;
+    el.style.display = (matchText && matchCat) ? '' : 'none';
+  });
+  document.querySelectorAll('.cat-label').forEach(el => {
+    const labelCat = el.dataset.cat;
+    if (cat && labelCat !== cat) { el.style.display = 'none'; return; }
+    if (q) { el.style.display = 'none'; return; }
+    el.style.display = '';
+  });
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  if (window.innerWidth > 700) {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
+}
+
+// ── SELECT ────────────────────────────────────
+function selectRudiment(r) {
+  if (isPlaying) stopPlay();
+  currentRudiment = r;
+
+  // Sidebar highlight
+  document.querySelectorAll('.rudiment-item').forEach(el => el.classList.remove('active'));
+  const itemEl = document.getElementById('item-' + r.id);
+  if (itemEl) { itemEl.classList.add('active'); itemEl.scrollIntoView({block:'nearest'}); }
+
+  // Close sidebar on mobile
+  if (window.innerWidth <= 700) {
+    document.getElementById('sidebar').classList.remove('open');
+  }
+
+  // Topbar name
+  document.getElementById('topbar-name').textContent =
+    `#${String(r.id).padStart(2,'0')} — ${r.name}`;
+
+  // Show rudiment view
+  document.getElementById('welcome-box').style.display = 'none';
+  const rv = document.getElementById('rudiment-view');
+  rv.style.display = 'flex';
+
+  // Info
+  const info = document.getElementById('info-row');
+  info.innerHTML = `<div class="info-desc">${r.desc}</div>
+    <div class="info-tips">${r.tips.map(t =>
+      `<div class="tip-row"><div class="tip-dot" style="background:${CATS[r.cat].color}"></div>${t}</div>`
+    ).join('')}</div>`;
+
+  renderNotation(r, -1);
+  renderSpeedLadder();
+  setBPM(r.bpm || 80);
+}
+
+// ── NOTATION ─────────────────────────────────
+function renderNotation(r, playheadIdx) {
+  const area = document.getElementById('notes-area');
+  // Keep the label
+  area.innerHTML = '<div class="staff-label">Baqueta</div>';
+
+  const pattern = r.pattern;
+  let nonGraceCount = 0;
+
+  // Open repeat
+  area.appendChild(makeRep('open'));
+
+  pattern.forEach((note, i) => {
+    const hand = note.h.toUpperCase();
+    const isGrace = note.grace || note.h !== note.h.toUpperCase();
+
+    // Beat separator
+    if (!isGrace) {
+      if (nonGraceCount > 0 && nonGraceCount % r.subdivision === 0) {
+        const sep = document.createElement('div');
+        sep.className = 'beat-sep';
+        area.appendChild(sep);
+      }
+    }
+
+    const cell = document.createElement('div');
+    cell.className = 'ncell' + (isGrace ? ' is-grace' : '');
+
+    if (!isGrace && nonGraceCount === playheadIdx) {
+      cell.classList.add('playhead');
+    }
+
+    // Stem
+    const stem = document.createElement('div');
+    stem.className = 'note-stem col-' + (isGrace ? 'g' : hand);
+    if (isGrace) stem.style.background = '#aaa';
+    cell.appendChild(stem);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'note-body';
+    if (note.buzz) {
+      body.classList.add('col-' + hand, 'buzz');
+      body.style.background = 'transparent';
+    } else if (isGrace) {
+      body.style.background = '#999';
+      body.style.borderColor = '#999';
+    } else {
+      body.classList.add('col-' + hand);
+    }
+    if (note.accent) {
+      const acc = document.createElement('div');
+      acc.className = 'accent-mark';
+      acc.textContent = '>';
+      acc.style.color = hand === 'R' ? 'var(--R)' : 'var(--L)';
+      cell.appendChild(acc);
+    }
+    cell.appendChild(body);
+
+    // Hand label
+    const lbl = document.createElement('div');
+    lbl.className = 'hand-lbl col-' + (isGrace ? 'g' : hand);
+    lbl.textContent = note.h;
+    if (isGrace) { lbl.style.fontSize = '0.55rem'; lbl.style.color = '#aaa'; }
+    cell.appendChild(lbl);
+
+    area.appendChild(cell);
+    if (!isGrace) nonGraceCount++;
+  });
+
+  area.appendChild(makeRep('close'));
+}
+
+function makeRep(type) {
+  const el = document.createElement('div');
+  el.className = 'rep';
+  if (type === 'open') {
+    const dots = document.createElement('div');
+    dots.className = 'rep-dots';
+    dots.innerHTML = '<div class="rep-dot"></div><div class="rep-dot"></div>';
+    el.appendChild(document.createElement('div')).className = 'rep-thin';
+    const thick = document.createElement('div'); thick.className = 'rep-thick';
+    el.insertBefore(dots, el.firstChild);
+    el.appendChild(thick);
+  } else {
+    const thick = document.createElement('div'); thick.className = 'rep-thick';
+    const thin = document.createElement('div'); thin.className = 'rep-thin';
+    const dots = document.createElement('div');
+    dots.className = 'rep-dots';
+    dots.innerHTML = '<div class="rep-dot"></div><div class="rep-dot"></div>';
+    el.appendChild(thick); el.appendChild(thin); el.appendChild(dots);
+  }
+  return el;
+}
+
+// ── SPEED LADDER ─────────────────────────────
+const SPEEDS = [40,50,60,70,80,90,100,110,120,140,160,180,200,240];
+
+function renderSpeedLadder() {
+  const el = document.getElementById('speed-ladder');
+  el.innerHTML = '';
+  SPEEDS.forEach(s => {
+    const btn = document.createElement('div');
+    btn.className = 'speed-step' + (s === bpm ? ' current' : '');
+    btn.id = 'ss-' + s;
+    btn.textContent = s;
+    btn.onclick = () => setBPM(s);
+    el.appendChild(btn);
+  });
+}
+
+function updateSpeedLadder() {
+  document.querySelectorAll('.speed-step').forEach(el => {
+    el.classList.remove('current');
+    if (parseInt(el.textContent) === bpm) el.classList.add('current');
+  });
+}
+
+// ── METRONOME ────────────────────────────────
+function buildNonGrace(pattern) {
+  nonGraceIndices = pattern.map((n,i) => n.grace ? null : i).filter(i => i !== null);
+}
+
+// ── WEB AUDIO CLOCK SCHEDULER ────────────────
+// Uses AudioContext.currentTime as the clock source — immune to setTimeout/setInterval
+// drift on iOS Safari. Schedules audio slightly ahead, updates visuals via requestAnimationFrame.
+
+let nextNoteTime = 0;       // when the next note should sound (AudioContext time)
+let scheduleAheadTime = 0.2; // seconds to look ahead (larger = more stable at high BPM)
+let lookahead = 20;          // ms between scheduler calls
+let schedulerTimer = null;
+let visualQueue = [];        // notes scheduled but not yet shown visually
+
+function scheduleNote(time, noteIndex, isGrace, isRight, isAccent) {
+  // Schedule sound at exact AudioContext time — no setTimeout, sample-accurate
+  scheduleStick(time, isRight, isGrace, isAccent);
+  // Queue for visual update
+  visualQueue.push({ time, stepVisual: noteIndex });
+}
+
+function scheduler() {
+  if (!isPlaying || !currentRudiment) return;
+  const ctx = getAC();
+
+  while (nextNoteTime < ctx.currentTime + scheduleAheadTime) {
+    const totalSteps = nonGraceIndices.length;
+    const noteIdx = nonGraceIndices[stepIdx % totalSteps];
+    const note = currentRudiment.pattern[noteIdx];
+    const hand = note.h.toUpperCase();
+
+    // Schedule grace note slightly before main note
+    if (noteIdx > 0) {
+      const prev = currentRudiment.pattern[noteIdx - 1];
+      if (prev && prev.grace) {
+        scheduleNote(nextNoteTime - 0.03, stepIdx % totalSteps, true, prev.h.toUpperCase() === 'R', false);
+      }
+    }
+
+    // Schedule main note
+    scheduleNote(nextNoteTime, stepIdx % totalSteps, false, hand === 'R', !!note.accent);
+
+    // Beat pip index
+    const beatPipIdx = beatIdx % 4;
+    visualQueue.push({ time: nextNoteTime, beatPip: beatPipIdx, stepVisual: stepIdx % totalSteps });
+
+    nextNoteTime += 60.0 / bpm;
+    stepIdx++;
+    beatIdx++;
+  }
+
+  schedulerTimer = setTimeout(scheduler, lookahead);
+}
+
+function drawVisuals() {
+  if (!isPlaying) return;
+  requestAnimationFrame(drawVisuals);
+
+  const ctx = getAC();
+  const now = ctx.currentTime;
+
+  while (visualQueue.length > 0 && visualQueue[0].time <= now + 0.01) {
+    const item = visualQueue.shift();
+    if (item.beatPip !== undefined) {
+      document.querySelectorAll('.beat-pip').forEach((p, i) => {
+        p.classList.remove('on', 'on-accent');
+        if (i === item.beatPip) p.classList.add(item.beatPip === 0 ? 'on-accent' : 'on');
+      });
+    }
+    if (item.stepVisual !== undefined && currentRudiment) {
+      renderNotation(currentRudiment, item.stepVisual);
+    }
+  }
+}
+
+function startPlay() {
+  if (!currentRudiment) return;
+  buildNonGrace(currentRudiment.pattern);
+  isPlaying = true;
+  stepIdx = 0;
+  beatIdx = 0;
+  visualQueue = [];
+
+  const ctx = getAC();
+  nextNoteTime = ctx.currentTime + 0.1; // startup delay
+
+  scheduler();
+  requestAnimationFrame(drawVisuals);
+
+  const btn = document.getElementById('play-btn');
+  btn.textContent = '⏹ Stop'; btn.classList.add('running');
+}
+
+function stopPlay() {
+  isPlaying = false;
+  clearTimeout(schedulerTimer);
+  visualQueue = [];
+  document.querySelectorAll('.beat-pip').forEach(p => p.classList.remove('on', 'on-accent'));
+  if (currentRudiment) renderNotation(currentRudiment, -1);
+  const btn = document.getElementById('play-btn');
+  btn.textContent = '▶ Play'; btn.classList.remove('running');
+}
+
+function togglePlay() {
+  if (!currentRudiment) return;
+  if (isPlaying) stopPlay(); else startPlay();
+}
+
+// ── BPM ──────────────────────────────────────
+function setBPM(v) {
+  bpm = Math.max(30, Math.min(300, parseInt(v)));
+  document.getElementById('bpm-display').textContent = bpm;
+  document.getElementById('bpm-slider').value = bpm;
+  updateSpeedLadder();
+  if (isPlaying) { stopPlay(); startPlay(); }
+}
+function adjBPM(d) { setBPM(bpm + d); }
+function tapTempo() {
+  const now = Date.now();
+  tapTimes.push(now);
+  if (tapTimes.length > 6) tapTimes.shift();
+  if (tapTimes.length >= 2) {
+    const diffs = tapTimes.slice(1).map((t,i) => t - tapTimes[i]);
+    setBPM(Math.round(60000 / (diffs.reduce((a,b) => a+b,0) / diffs.length)));
+  }
+}
+
+// ── NAVIGATION ───────────────────────────────
+function navigateRudiment(dir) {
+  const idx = currentRudiment ? RUDIMENTS.findIndex(r => r.id === currentRudiment.id) : -1;
+  const next = RUDIMENTS[idx + dir];
+  if (next) selectRudiment(next);
+  else if (!currentRudiment) selectRudiment(RUDIMENTS[0]);
+}
+
+// ── KEYBOARD ─────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  if (e.key === 'ArrowRight') navigateRudiment(1);
+  if (e.key === 'ArrowLeft') navigateRudiment(-1);
+  if (e.key === 'ArrowUp') adjBPM(5);
+  if (e.key === 'ArrowDown') adjBPM(-5);
+});
+
+// ── INIT ─────────────────────────────────────
+buildSidebar();
+buildWelcome();
+setBPM(80);
+// ── SERVICE WORKER (PWA offline) ─────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(r => console.log('SW registered'))
+      .catch(e => console.log('SW error', e));
+  });
+}
+</script>
+</body>
+</html>

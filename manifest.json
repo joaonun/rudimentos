@@ -1,0 +1,30 @@
+{
+  "name": "Rudimentos PAS",
+  "short_name": "Rudimentos",
+  "description": "Treinador dos 40 Rudimentos Oficiais da Percussive Arts Society",
+  "start_url": "/rudimentos/",
+  "scope": "/rudimentos/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1a1510",
+  "theme_color": "#1a1510",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "music",
+    "education"
+  ],
+  "lang": "pt-BR"
+}
