@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rudimentos PAS — Treinador 1117</title>
+<title>Rudimentos PAS — Treinador 1125</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
@@ -1432,18 +1432,11 @@ function buildNonGrace(pattern) {
 // Uses AudioContext.currentTime as the clock source — immune to setTimeout/setInterval
 // drift on iOS Safari. Schedules audio slightly ahead, updates visuals via requestAnimationFrame.
 
-let audioCtx = null;
 let nextNoteTime = 0;       // when the next note should sound (AudioContext time)
 let scheduleAheadTime = 0.2; // seconds to look ahead (larger = more stable at high BPM)
 let lookahead = 20;          // ms between scheduler calls
 let schedulerTimer = null;
 let visualQueue = [];        // notes scheduled but not yet shown visually
-
-function getAC() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
 
 function scheduleNote(time, noteIndex, isGrace, isRight, isAccent) {
   // Schedule sound at exact AudioContext time — no setTimeout, sample-accurate
