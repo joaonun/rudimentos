@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Rudimentos PAS — Treinador</title>
+<title>Rudimentos PAS — Treinador 1640</title>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -298,6 +298,60 @@ input[type=range]::-webkit-slider-thumb{
   white-space:nowrap;
 }
 .tap-btn:active{background:var(--border);color:var(--ink);}
+
+/* Progressivo */
+.prog-panel{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:7px;
+  padding:6px 12px;
+  margin-left:auto;
+  flex-shrink:0;
+}
+.prog-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.65rem;letter-spacing:1px;
+  color:var(--muted);text-transform:uppercase;
+  white-space:nowrap;
+}
+.prog-checkbox{
+  width:15px;height:15px;cursor:pointer;accent-color:var(--R);
+  flex-shrink:0;
+}
+.prog-field{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.prog-field label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.55rem;letter-spacing:1px;
+  color:var(--muted);text-transform:uppercase;
+  white-space:nowrap;
+}
+.prog-input{
+  width:52px;
+  background:var(--paper);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:3px 6px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.85rem;font-weight:700;
+  color:var(--ink);text-align:center;
+  outline:none;
+}
+.prog-input:focus{border-color:var(--R);}
+.prog-input:disabled{opacity:0.35;cursor:not-allowed;}
+.prog-status{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.6rem;letter-spacing:1px;
+  color:var(--R);white-space:nowrap;
+  min-width:80px;text-align:center;
+  display:none;
+}
+.prog-status.active{display:block;}
+@media(max-width:700px){
+  .prog-panel{margin-left:0;width:100%;justify-content:center;flex-wrap:wrap;}
+}
 
 /* ── SCORE AREA ── */
 .score-area{
@@ -633,6 +687,24 @@ input[type=range]::-webkit-slider-thumb{
         <div class="beat-pip" id="bp3"></div>
       </div>
       <button class="tap-btn" onclick="tapTempo()">TAP</button>
+
+      <!-- PROGRESSIVO -->
+      <div class="prog-panel">
+        <input type="checkbox" class="prog-checkbox" id="prog-check" onchange="toggleProg()">
+        <span class="prog-label">Progressivo</span>
+        <div class="prog-field">
+          <label>+BPM</label>
+          <input type="number" class="prog-input" id="prog-bpm" value="5" min="1" max="50" disabled>
+        </div>
+        <div class="prog-field">
+          <label>A cada</label>
+          <input type="number" class="prog-input" id="prog-rounds" value="4" min="1" max="100" disabled>
+        </div>
+        <div class="prog-field">
+          <label>rodadas</label>
+          <div class="prog-status" id="prog-status">rod. 0</div>
+        </div>
+      </div>
     </div>
 
     <!-- SCORE AREA -->
@@ -1483,6 +1555,11 @@ function scheduler() {
     nextNoteTime += 60.0 / bpm;
     stepIdx++;
     beatIdx++;
+
+    // Detect end of pattern round
+    if (stepIdx % totalSteps === 0) {
+      progOnRoundComplete();
+    }
   }
 
   schedulerTimer = setTimeout(scheduler, lookahead);
@@ -1516,6 +1593,10 @@ function startPlay() {
   stepIdx = 0;
   beatIdx = 0;
   visualQueue = [];
+  progRoundCount = 0;
+  progBaseBPM = bpm;
+  const statusEl = document.getElementById('prog-status');
+  if (statusEl) { statusEl.classList.remove('active'); statusEl.textContent = 'rod. 0'; statusEl.style.color='var(--R)'; }
 
   const ctx = getAC();
   nextNoteTime = ctx.currentTime + 0.1; // startup delay
@@ -1558,6 +1639,45 @@ function tapTempo() {
   if (tapTimes.length >= 2) {
     const diffs = tapTimes.slice(1).map((t,i) => t - tapTimes[i]);
     setBPM(Math.round(60000 / (diffs.reduce((a,b) => a+b,0) / diffs.length)));
+  }
+}
+
+// ── PROGRESSIVO ──────────────────────────────
+let progEnabled = false;
+let progRoundCount = 0;   // completed rounds so far
+let progBaseBPM = 80;     // BPM when progressivo was started
+
+function toggleProg() {
+  progEnabled = document.getElementById('prog-check').checked;
+  document.getElementById('prog-bpm').disabled    = !progEnabled;
+  document.getElementById('prog-rounds').disabled = !progEnabled;
+  if (!progEnabled) {
+    document.getElementById('prog-status').classList.remove('active');
+  }
+}
+
+function progGetBpmInc()    { return Math.max(1, parseInt(document.getElementById('prog-bpm').value)    || 5); }
+function progGetRoundsEvery(){ return Math.max(1, parseInt(document.getElementById('prog-rounds').value) || 4); }
+
+function progOnRoundComplete() {
+  if (!progEnabled || !isPlaying) return;
+  progRoundCount++;
+  const every = progGetRoundsEvery();
+  const inc   = progGetBpmInc();
+  const statusEl = document.getElementById('prog-status');
+  statusEl.classList.add('active');
+  statusEl.textContent = `rod. ${progRoundCount}`;
+
+  if (progRoundCount % every === 0) {
+    const newBPM = Math.min(300, bpm + inc);
+    setBPM(newBPM);
+    // Flash status
+    statusEl.style.color = '#1e8449';
+    statusEl.textContent = `+${inc} → ${newBPM}`;
+    setTimeout(() => {
+      statusEl.style.color = 'var(--R)';
+      statusEl.textContent = `rod. ${progRoundCount}`;
+    }, 1200);
   }
 }
 
